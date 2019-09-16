@@ -8,11 +8,12 @@ from scipy.spatial.transform import Rotation as R
 from lidar_odometry.gt_from_loam import read_odometry
 from matplotlib import pyplot as plt
 
-path = "/media/ash/OS/small_obstacle_bag/synced_data/file_1/"
+path = '/Users/aditya/Documents/Code/aditya/iiit_research/iiit_data/debug/'
 img_path = os.path.join(path,"image")
 velo_path = os.path.join(path,"velodyne")
 dense_velo_path = os.path.join(path,"groundTruth_denser")
 sparse_velo_path = os.path.join(path,"depth")
+ring_info = os.path.join(path, "rings")
 
 
 transform_matrix = [[0.99961240, 0.00960922,-0.02612872,0.257277],
@@ -41,7 +42,7 @@ trans_vec= transform_matrix[:3,3]
 
 """
 # For file_1 and file_4
-# we modify the RnT matrix manually below 
+# we modify the RnT matrix manually below
 
 dump_vec = R.from_dcm(rot_vec)
 dump_vec = dump_vec.as_rotvec()
@@ -142,8 +143,9 @@ def save_frames(frames,start,num_frames):
     index = start
     for k in range(len(frames)):
         img = np.zeros((720,1280,1),dtype=np.uint16)
-        dense_cloud = frames[k]
-        dense_cloud = dense_cloud[:,:3]
+        ring = np.zeros((720, 1280, 1), dtype=np.uint8)
+        point_cloud = frames[k]
+        dense_cloud = point_cloud[:,:3]
         rot, _ = cv2.Rodrigues(rot_vec)
         proj_points, _ = cv2.projectPoints(dense_cloud, rot, trans_vec, projection_matrix, distortion_matrix)
 
@@ -155,8 +157,10 @@ def save_frames(frames,start,num_frames):
             if (y < 720 and x < 1280 and x > 0 and y > 0 and dense_cloud[i][2] >= 0 and depth > 2.5):
                 depth = int(depth/100*65535)
                 img[y,x] = depth
+                ring[y,x] = point_cloud[i, 4]
 
         cv2.imwrite(os.path.join(sparse_velo_path,'{0:010d}.png'.format(index)),img)
+        cv2.imwrite(os.path.join(ring_path, '{0:010d}.png'.format(index)), ring)
         index += 1
 
 
@@ -185,7 +189,7 @@ if __name__ == "__main__":
     #dense_frames = densify_cloud(sparse_frames,odometry,num_frames)
     #print(len_odom, len(sparse_frames),len(dense_frames))
     # vis_calib(dense_frames,start,end,num_frames)
-    # save_frames(sparse_frames,start,num_frames)
+    save_frames(sparse_frames,start,num_frames)
 
     """
     fig = plt.figure()
