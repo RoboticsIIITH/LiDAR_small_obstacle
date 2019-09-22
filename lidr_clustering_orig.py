@@ -1,7 +1,7 @@
 from termcolor import colored
 import sys
 from matplotlib import pyplot as plt
-# from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D
 from matplotlib._png import read_png
 from matplotlib.cbook import get_sample_data
 import os
@@ -11,26 +11,25 @@ import scipy.cluster as cluster
 from sklearn.svm import OneClassSVM
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor,NearestNeighbors
-from scipy.interpolate import CubicSpline,UnivariateSpline
 from sklearn.pipeline import make_pipeline
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge,HuberRegressor,RANSACRegressor,TheilSenRegressor
 from sklearn.preprocessing import PolynomialFeatures
+from scipy import interpolate
 import math
+import warnings
+warnings.filterwarnings("ignore")
 
-
-def main(draw=False, path=False, paths=None):
+def main(draw=True, path=False, paths=None):
 
 
     if not path:
         # absolute path
-        path = "/media/ash/OS/small_obstacle_bag/synced_data/seq_2/"
-
+        path = "/media/ash/OS/small_obstacle_bag/synced_data/seq_1/"
         label_files = sorted(os.listdir(os.path.join(path,"labels")))
         velodyne_files = sorted(os.listdir(os.path.join(path,"depth")))
 
         # path files for various interesting data streams
-        index_value = 19
-        print(label_files[index_value])
+        index_value = 25
         cloud_files = [os.path.join(path+"depth/",x) for x in label_files]
         image_files = [os.path.join(path+"image/",x) for x in label_files]
         ring_files = [os.path.join(path+'rings', x) for x in label_files]
@@ -50,7 +49,7 @@ def main(draw=False, path=False, paths=None):
     # OPEN ALL RELEVANT IMAGES FOR MANIPULATION
     # open a depth image
     depth = Image.open(depth_file)
-    # normalize depth values so that they have range between 0 - 255
+    # normalize depth values so that they have range between 1 - 255
     depth = np.array(depth)
 
     # open rgb image
@@ -69,9 +68,9 @@ def main(draw=False, path=False, paths=None):
     min_road_x = np.min(road_x)
     max_road_y = np.max(road_y)
     min_road_y = np.min(road_y)
+
     # open a ring image
     ring = np.asarray(Image.open(ring_file))
-
     # CL
     # CONTROL VARIABLES THAT ARE GOING TO BE USED TO ANALYSE LIDAR DATA
     # data fields to be potted
@@ -85,9 +84,11 @@ def main(draw=False, path=False, paths=None):
 
     # Loop to extract pixels with valid lidar depth that belong within the road
     # polygon
-    for i in range(min_road_x,max_road_x):
-        for j in range(min_road_y,max_road_y):
-            if depth[i,j] != 0 and gt[i,j] != 0:
+    for i in range(depth.shape[0]):
+        for j in range(depth.shape[1]):
+            if depth[i,j] == 0:
+                continue
+            if i<max_road_x and i>min_road_x and j<max_road_y and j>min_road_y and gt[i,j]!=0:
                 x.append(i)
                 y.append(j)
                 value.append(depth[i, j])
@@ -99,47 +100,31 @@ def main(draw=False, path=False, paths=None):
     value = np.asarray(value)
     ring_values = np.asarray(ring_values)
     unique_road_rings = np.unique(ring_values)
+
+    x_features = []
+    y_features = []
+    value_features = []
     cluster_preds = []
 
     # degree of linear regression fit
-    for ring in unique_road_rings:
-        feature_vector = []
+    for ring in unique_road_rings[:len(unique_road_rings)-1]:
         relevant_indices = np.where(ring_values == ring)[0]
-        y_features = y[relevant_indices]
-        value_features = value[relevant_indices]
-
-        if ring == 6:
-            model = make_pipeline(PolynomialFeatures(4), Ridge())
-            y_features = y_features[:,np.newaxis]
-            value_features = value_features[:,np.newaxis]
-            model.fit(y_features,value_features)
-            preds = model.predict(y_features)
-            deviation = np.sqrt(np.mean(abs(preds - value_features) ** 2))
-            print(deviation)
-            result = []
-            for i in range(len(preds)):
-                if abs(preds[i] - value_features[i]) > 2.5 * deviation:
-                    result.append(-1)
-                else:
-                    result.append(1)
-            colors = []
-            for elem in result:
-                if elem == -1:
-                    colors.append('red')
-                elif elem == 1:
-                    colors.append('blue')
-
-            plt.scatter(y_features,value_features,c=colors)
-            plt.scatter(y_features,preds,c='g')
-            plt.show()
-            break
-
-        # clf = IsolationForest(contamination=0.1).fit(ring_depths)
-        # preds = clf.predict(ring_depths)
-        # preds = custom_fit(y_features[:,np.newaxis],value_features[:,np.newaxis])
-        # for pred in preds:
-        #     cluster_preds.append(pred)
-
+        for i in relevant_indices:
+            x_features.append(x[i])
+            y_features.append(y[i])
+            value_features.append(value[i])
+        feature_vector = [[x[i],y[i]] for i in relevant_indices]
+        ring_depths = value[relevant_indices]
+        ring_depths = np.asarray(ring_depths)
+        ring_depths = ring_depths[:, np.newaxis]
+        # preds = custom_fit(y[relevant_indices][:,np.newaxis],ring_depths)
+        # preds = custom_fit(x[relevant_indices][:,np.newaxis],y[relevant_indices][:,np.newaxis])
+        preds = spline_fit(x[relevant_indices],y[relevant_indices],value[relevant_indices])
+        # clf = IsolationForest(contamination=0.02).fit(feature_vector)
+        # preds = clf.predict(feature_vector)
+        for pred in preds:
+            cluster_preds.append(pred)
+        break
 
     # TRYING OUT VARIOUS CLUSTERING ALGOS
     # build a feature vector to input to various clustering apis
@@ -215,7 +200,7 @@ def main(draw=False, path=False, paths=None):
         # X1 = np.arange(0, 1280, 1)
         # Y1 = np.arange(0, 720, 1)
         # X1, Y1 = np.meshgrid(X1, Y1)
-        # 
+        #
         # ax.plot_surface(X1, np.atleast_2d(255), Y1, rstride=10, cstride=10,
         #                 facecolors=image/256.0)
         # ax_ring.set_xlabel('X')
@@ -231,12 +216,16 @@ def main(draw=False, path=False, paths=None):
 
 def custom_fit(x_feat, y_feat):
     result = []
-    degree = 2
-    model = make_pipeline(PolynomialFeatures(degree), Ridge())
+    degree = 3
+    model = make_pipeline(PolynomialFeatures(degree),RANSACRegressor())
     # print(colored("DEBUG/ x shape: {}".format(x_feat.shape), 'cyan'))
     # print(colored("DEBUG/ y shape: {}".format(y_feat.shape), 'cyan'))
     model.fit(x_feat, y_feat)
     y_hat = model.predict(x_feat)
+
+    # plt.scatter(x_feat,y_hat,c='r',s=5)
+    # plt.scatter(x_feat,y_feat,c='b',s=10)
+    # plt.show()
     # print(colored("DEBUG/ y hat shape: {}".format(y_hat.shape), 'cyan'))
     deviation = np.sqrt(np.mean(abs(y_hat - y_feat)**2))
     for i in range(len(y_feat)):
@@ -246,9 +235,12 @@ def custom_fit(x_feat, y_feat):
             result.append(1)
     return result
 
-def spline_fit(x_feat,y_feat):
-    plt.scatter(x_feat,y_feat,s=5)
+def spline_fit(x,y,z):
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    ax.plot(x,y,z)
     plt.show()
+
 
 if __name__ == '__main__':
     main()
