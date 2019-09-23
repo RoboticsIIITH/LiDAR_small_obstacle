@@ -59,7 +59,6 @@ def get_hacky_transf(inp):
     hacky_trans_matrix = np.concatenate((hacky_trans_matrix, np.array([[0, 0, 0, 1]])), axis=0)
     return np.dot(hacky_trans_matrix,inp)
 
-
 def clustering(pts):
     pred = []
     if pts.shape[0]:

@@ -2,13 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="37f23731-dfde-41f0-8e70-c6ac858ec42c" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/calibration_opt.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dataloader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lidr_clustering_orig.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lidar_points_clustering.py" beforeDir="false" afterPath="$PROJECT_DIR$/lidar_points_clustering.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sift_surf_visualisation.py" beforeDir="false" afterPath="$PROJECT_DIR$/sift_surf_visualisation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualise_calibration.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualise_calibration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/calibration_opt.py" beforeDir="false" afterPath="$PROJECT_DIR$/calibration_opt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dataloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/dataloader.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -21,11 +17,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/calibration_opt.py">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/optimizer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2862">
-              <caret line="159" column="61" lean-forward="true" selection-start-line="159" selection-start-column="61" selection-end-line="159" selection-end-column="61" />
+            <state relative-caret-position="762">
+              <caret line="99" column="9" lean-forward="true" selection-start-line="99" selection-start-column="9" selection-end-line="99" selection-end-column="9" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
               </folding>
@@ -33,11 +29,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dataloader.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="342">
-              <caret line="19" column="65" lean-forward="true" selection-start-line="19" selection-start-column="65" selection-end-line="19" selection-end-column="65" />
+            <state relative-caret-position="204">
+              <caret line="104" column="13" lean-forward="true" selection-start-line="104" selection-start-column="13" selection-end-line="104" selection-end-column="13" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -81,8 +77,9 @@
         <option value="$PROJECT_DIR$/sift_surf_visualisation.py" />
         <option value="$PROJECT_DIR$/lidr_clustering_orig.py" />
         <option value="$PROJECT_DIR$/testin_dump.py" />
-        <option value="$PROJECT_DIR$/dataloader.py" />
         <option value="$PROJECT_DIR$/calibration_opt.py" />
+        <option value="$PROJECT_DIR$/dataloader.py" />
+        <option value="$PROJECT_DIR$/optimizer.py" />
       </list>
     </option>
   </component>
@@ -97,6 +94,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -108,7 +106,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -147,12 +144,15 @@
       <workItem from="1568788462286" duration="29504000" />
       <workItem from="1568869424645" duration="66446000" />
       <workItem from="1569044385001" duration="24299000" />
-      <workItem from="1569130881441" duration="12543000" />
+      <workItem from="1569130881441" duration="12610000" />
+      <workItem from="1569151870285" duration="5000" />
+      <workItem from="1569158475318" duration="7965000" />
+      <workItem from="1569213791169" duration="10480000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="192599000" />
+    <option name="totallyTimeSpent" value="211116000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -164,13 +164,12 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="1919" y="-28" width="1922" height="1109" extended-state="6" />
-    <editor active="true" />
+    <frame x="-1" y="-28" width="1922" height="1109" extended-state="6" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49900794" weight="0.25266525" />
       <window_info id="Structure" order="1" sideWeight="0.50099206" side_tool="true" weight="0.39019188" />
       <window_info id="Favorites" order="2" sideWeight="0.50099206" side_tool="true" weight="0.25266525" />
-      <window_info active="true" id="Terminal" order="3" sideWeight="0.49900794" visible="true" weight="0.32036248" />
+      <window_info active="true" id="Terminal" order="3" sideWeight="0.49900794" visible="true" weight="0.38539445" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32936507" />
       <window_info anchor="bottom" id="Run" order="2" />
@@ -319,8 +318,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/calibration_opt.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2862">
-          <caret line="159" column="61" lean-forward="true" selection-start-line="159" selection-start-column="61" selection-end-line="159" selection-end-column="61" />
+        <state relative-caret-position="1626">
+          <caret line="146" column="23" selection-start-line="146" selection-start-column="23" selection-end-line="146" selection-end-column="23" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
           </folding>
@@ -329,10 +328,20 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dataloader.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="19" column="65" lean-forward="true" selection-start-line="19" selection-start-column="65" selection-end-line="19" selection-end-column="65" />
+        <state relative-caret-position="204">
+          <caret line="104" column="13" lean-forward="true" selection-start-line="104" selection-start-column="13" selection-end-line="104" selection-end-column="13" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/optimizer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="762">
+          <caret line="99" column="9" lean-forward="true" selection-start-line="99" selection-start-column="9" selection-end-line="99" selection-end-column="9" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
           </folding>
         </state>
       </provider>
