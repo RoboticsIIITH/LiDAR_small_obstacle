@@ -1,11 +1,19 @@
 import os
 import numpy as np
 from PIL import Image
+from multiprocessing import Pool
 from scipy.spatial.transform import Rotation as R
 from scipy.ndimage import label
 from sklearn.ensemble import IsolationForest
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import Ridge,HuberRegressor,RANSACRegressor,TheilSenRegressor
+from sklearn.metrics import mean_squared_error
+from matplotlib import pyplot as plt
+import time
 import cv2
 import warnings
+import random
 warnings.filterwarnings("ignore")
 
 
@@ -15,22 +23,38 @@ class ProjSet:
 
         self.root_path = dir_path
         self.class_num = class_num
-        self.label_paths = []
-        self.lidar_paths = []
+        label_paths = []
+        lidar_paths = []
         for folder in os.listdir(self.root_path):
-            path = os.path.join(self.root_path,folder,"labels")
+            path = os.path.join(self.root_path, folder, "labels")
             for file in sorted(os.listdir(path)):
-                self.label_paths.append(os.path.join(path,file))
-                self.lidar_paths.append(os.path.join(path.split("labels")[0],"velodyne",file.split('.')[0]+'.npy'))
+                label_paths.append(os.path.join(path, file))
+                lidar_paths.append(os.path.join(path.split("labels")[0], "velodyne", file.split('.')[0] + '.npy'))
 
-        self.img_paths = [file.split('labels')[0] + 'image' + file.split('labels')[1] for file in self.label_paths]
-        self.proj_matrix = np.array([[692.653256 ,0.000000, 629.321381,0.000],
-                                    [0.000,692.653256,330.685425,0.000],
-                                    [0.000000,0.000000, 1.00000,0.000]])
+        img_paths = [file.split('labels')[0] + 'image' + file.split('labels')[1] for file in label_paths]
+
+        start = time.time()
+        p = Pool(9)
+        self.images = p.map(self.load_file, img_paths)
+        self.lidar = p.map(self.load_file, lidar_paths)
+        self.labels = p.map(self.load_file, label_paths)
+        p.close()
+        p.join()
+        print("Took :{} secs to load data".format(time.time()-start))
+        self.proj_matrix = np.array([[692.653256, 0.000000, 629.321381, 0.000],
+                                     [0.000, 692.653256, 330.685425, 0.000],
+                                     [0.000000, 0.000000, 1.00000, 0.000]])
         self.transf_matrix = []
 
     def __len__(self):
-        return len(self.label_paths)
+        return len(self.labels)
+
+    @staticmethod
+    def load_file(path):
+        if path.split('.')[1] == "npy":
+            return np.load(path)
+        elif path.split('.')[1] == 'png':
+            return np.asarray(Image.open(path))
 
     @property
     def transf(self):
@@ -51,19 +75,21 @@ class ProjSet:
         return np.dot(hacky_trans_matrix, inp)
 
     @staticmethod
-    def get_mask(inp,span=16):
+    def get_mask(inp,span=5):
         instance_id, instance_num = label(inp)
         obs_centroids = {}
+        mask = np.zeros((inp.shape[0], inp.shape[1]))
         for i in range(instance_num):
             x, y = np.where(instance_id == i + 1)
+            min_x = np.min(x) - span
+            min_y = np.min(y) - span
+            max_x = np.max(x) + span
+            max_y = np.max(y) + span
             cx = int(np.mean(x))
             cy = int(np.mean(y))
             obs_centroids[i + 1] = [cx, cy]
+            mask[min_x:max_x,min_y:max_y] = 1
 
-        mask = np.zeros((inp.shape[0], inp.shape[1]))
-        for key in obs_centroids.keys():
-            x, y = obs_centroids[key]
-            mask[x - span:x + span, y - span:y + span] = 1
         return mask,obs_centroids
 
     @staticmethod
@@ -79,6 +105,21 @@ class ProjSet:
         if pts.shape[0]:
             model = IsolationForest(contamination=0.1).fit(pts[:, :3])
             pred = model.predict(pts[:, :3])
+        return pred
+
+    @staticmethod
+    def fit_poly(pts):
+        pred = []
+        model = make_pipeline(PolynomialFeatures(1),RANSACRegressor())
+        model.fit(np.c_[pts[:,0],pts[:,2]],pts[:,1][:,np.newaxis])
+        y_hat = model.predict(np.c_[pts[:,0],pts[:,2]])
+        error = [(y_hat[i] - pts[i, 1]) ** 2 for i in range(len(y_hat))]
+        mean_error = np.mean(error)
+        for term in error:
+            if term > 10*mean_error:
+                pred.append(-1)
+            else:
+                pred.append(1)
         return pred
 
     def correspond_lidar_pts(self,points, ring_num, label, mask, T, P):
@@ -101,7 +142,8 @@ class ProjSet:
         ring_num = ring_num[valid_indexes]
 
         for i in range(6):
-            pred = self.clustering(points[ring_num == i])
+            # pred = self.clustering(points[ring_num == i])
+            pred = self.fit_poly(points[ring_num==i])
             proj_pts = self.project_lid_on_img(points[ring_num == i].transpose(), T, P)
             if i == 0:
                 proj_pts_global = np.array(proj_pts)
@@ -126,26 +168,28 @@ class ProjSet:
         return proj_pts_global, pred_global, points_global
 
     def __getitem__(self, index):
-        img = np.asarray(Image.open(self.img_paths[index]))
-        label = np.asarray(Image.open(self.label_paths[index]))
-        lidar = np.load(self.lidar_paths[index])
+        img = self.images[index]
+        label = self.labels[index]
+        lidar = self.lidar[index]
 
         ring_num = lidar[:,4]
         lidar[:,3] = 1.0
         lidar = lidar[:,:4]
         lidar = self.rotate_axis(lidar.transpose()).transpose()
-        class_mask = (label == self.class_num).astype(np.float)     # Target class mask
+        # class_mask = (label == self.class_num).astype(np.float)     # Target class mask
+        class_mask = (label == 2) | (label == 3)
+        class_mask = class_mask.astype(np.float)
         span_window,centroids = self.get_mask(class_mask)           # Only to be used for small obstacles
-
-        proj_pts,pred,valid_lidar_pts = self.correspond_lidar_pts(lidar,ring_num,label,span_window,
-                                                                  self.transf_matrix,self.proj_matrix)
+        if len(centroids.keys()):
+            proj_pts,pred,valid_lidar_pts = self.correspond_lidar_pts(lidar,ring_num,label,span_window,self.transf_matrix,self.proj_matrix)
+        else:
+            valid_lidar_pts,pred,proj_pts = np.array([]),[],np.array([])
 
         return img, valid_lidar_pts, class_mask, proj_pts, centroids,pred
 
 
 if __name__ == '__main__':
 
-    from torch.utils.data import DataLoader
     dataset = ProjSet(dir_path='/media/ash/OS/small_obstacle_bag/synced_data/',class_num=2)
     quat = [0.0170,-0.0063,-0.0024,1.0017]
     transl = [0.257277,-0.0378583,-0.0483284]

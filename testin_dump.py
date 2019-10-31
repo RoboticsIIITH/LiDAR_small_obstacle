@@ -134,7 +134,7 @@ def ring_cluster(pts):
     
     outliers = np.array(outliers)
     # print("before",np.unique(outliers))
-    for i in range(num_clusters+1):
+    for i in range(vinum_clusters+1):
         for j in range(i+1,num_clusters+1):
             # print(abs(np.mean(pts[outliers == i, 1]) - np.mean(pts[outliers == j, 1])))
             # print(np.mean(pts[outliers==i,1]))

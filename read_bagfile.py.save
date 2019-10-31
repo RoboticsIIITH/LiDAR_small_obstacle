@@ -13,8 +13,9 @@ zed_dist = [-0.171875, 0.02449920028448105, 0.0, 0.0, 0.0]
 zed_camera_matrix = np.array(zed_camera_matrix)
 zed_dist = np.array(zed_dist)
 
-bag = rosbag.Bag('/home/ash/Desktop/stadium_3.bag')
-data_dir='/media/ash/OS/small_obstacle_bag/raw_aditya/stadium_3/'
+#bag = rosbag.Bag('/media/ash/OS/small_obstacle_bag/vindhya_bag/seq2_vindhya.bag')
+
+data_dir='/media/ash/OS/small_obstacle_bag/raw_aditya/vindhya_2/'
 
 os.makedirs(os.path.join(data_dir,"image"))
 os.makedirs(os.path.join(data_dir,"velodyne"))
@@ -53,3 +54,5 @@ for topic,msg,t in bag.read_messages(topics=['/zed/zed_node/left_raw/image_raw_c
         index += 1
 
 bag.close()
+/media/ash/Seagate Backup Plus Drive/rrc_obstacle_dataset/raw_img_seq/stadium/stadium_seq
+

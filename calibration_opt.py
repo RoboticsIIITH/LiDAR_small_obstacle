@@ -126,6 +126,22 @@ def valid_lidar_pts(points, ring_num, label, mask, T, P):
 
     return proj_pts_global,pred_global,points_global
 
+def circle_clustering(pts):
+    x = pts[:,0]
+    z = pts[:,2]
+    y = pts[:,1]
+    if pts.shape[0]:
+        r = np.sqrt(x**2+z**2)
+        phi = np.degrees(np.arctan2(z,x))
+        # phi = phi-np.min(phi)
+        # phi = phi.astype(np.uint8)
+        # r = r[phi==20]
+        # y = y[phi==20]
+        alpha = np.degrees(np.arctan2(y,r))
+        plt.plot(x,alpha)
+        plt.show()
+        return r
+
 
 def to_tensor(inp):
     return torch.as_tensor(inp,dtype=torch.float,device=device)
