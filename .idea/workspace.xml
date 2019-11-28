@@ -2,25 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="37f23731-dfde-41f0-8e70-c6ac858ec42c" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/best_transf_mat.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dataloader_road.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/delete.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/file_1_transf.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/misc/best_transf_mat.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/moloy_trans_mat.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/optimizer_road.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/projection_mat.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/road_transf_mat.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/road_transf_mat_2.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test_bed.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/superpixel_demo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/calibration_opt.py" beforeDir="false" afterPath="$PROJECT_DIR$/calibration_opt.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dataloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/dataloader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/optimizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/optimizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/read_bagfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/read_bagfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testin_dump.py" beforeDir="false" afterPath="$PROJECT_DIR$/testin_dump.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualise_calibration.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualise_calibration.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -53,6 +38,10 @@
       <find>wk</find>
       <find>Kmeans</find>
       <find>self.plo</find>
+      <find>contours</find>
+      <find>class_num</find>
+      <find>device</find>
+      <find>self.device</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -76,13 +65,16 @@
         <option value="$PROJECT_DIR$/projection_mat.txt" />
         <option value="$PROJECT_DIR$/moloy_trans_mat.txt" />
         <option value="$PROJECT_DIR$/read_bagfile.py" />
+        <option value="$PROJECT_DIR$/visualise_calibration.py" />
+        <option value="$PROJECT_DIR$/superpixel_demo.py" />
+        <option value="$USER_HOME$/SLIC_superpixels/slic.py" />
+        <option value="$USER_HOME$/labelme/labelme2voc.py" />
         <option value="$PROJECT_DIR$/dataloader.py" />
         <option value="$PROJECT_DIR$/optimizer.py" />
-        <option value="$PROJECT_DIR$/visualise_calibration.py" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" fullScreen="true">
+  <component name="ProjectFrameBounds" extendedState="6" fullScreen="true">
     <option name="y" value="-25" />
     <option name="width" value="1920" />
     <option name="height" value="1105" />
@@ -92,24 +84,14 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="ProjectPane">
-        <subPane>
-          <expand>
-            <path>
-              <item name="Image_lidar_fusion" type="b2602c69:ProjectViewProjectNode" />
-              <item name="Image_lidar_fusion" type="462c0819:PsiDirectoryNode" />
-            </path>
-          </expand>
-          <select />
-        </subPane>
-      </pane>
       <pane id="Scope" />
+      <pane id="ProjectPane" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../Small_Obstacle_Segmentation" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="settings.editor.selected.configurable" value="reference.settingsdialog.IDE.editor.colors" />
@@ -168,11 +150,15 @@
       <workItem from="1571257418200" duration="2856000" />
       <workItem from="1571424059621" duration="8000" />
       <workItem from="1571766593859" duration="10993000" />
+      <workItem from="1572854277944" duration="27000" />
+      <workItem from="1572893389840" duration="2796000" />
+      <workItem from="1573124029087" duration="20040000" />
+      <workItem from="1573276643362" duration="6223000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="377085000" />
+    <option name="totallyTimeSpent" value="406171000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -184,11 +170,11 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="-25" width="1920" height="1105" extended-state="0" />
+    <frame x="0" y="-25" width="1920" height="1105" extended-state="6" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49900794" weight="0.25266525" />
-      <window_info id="Structure" order="1" sideWeight="0.50099206" side_tool="true" weight="0.39019188" />
-      <window_info id="Terminal" order="2" sideWeight="0.49801588" weight="0.45948827" />
+      <window_info id="Structure" order="1" sideWeight="0.5019841" side_tool="true" weight="0.4978678" />
+      <window_info id="Terminal" order="2" sideWeight="0.49801588" weight="0.61567163" />
       <window_info id="Favorites" order="3" sideWeight="0.5019841" side_tool="true" weight="0.42324093" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32936507" />
@@ -202,7 +188,7 @@
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" weight="0.32936507" />
       <window_info anchor="bottom" id="Python Console" order="11" />
-      <window_info anchor="bottom" id="File Transfer" order="12" weight="0.32902583" />
+      <window_info anchor="bottom" id="File Transfer" order="12" weight="0.32837301" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -346,16 +332,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/testin_dump.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="81" column="30" lean-forward="true" selection-start-line="75" selection-start-column="4" selection-end-line="81" selection-end-column="30" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/optimizer_road.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-516">
@@ -424,10 +400,44 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/testin_dump.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="378">
+          <caret line="81" column="30" lean-forward="true" selection-start-line="75" selection-start-column="4" selection-end-line="81" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/superpixel_demo.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="10" lean-forward="true" selection-start-line="10" selection-end-line="10" />
+          <folding>
+            <element signature="e#0#37#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/SLIC_superpixels/slic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3111">
+          <caret line="208" column="19" lean-forward="true" selection-start-line="208" selection-start-column="19" selection-end-line="208" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/labelme/labelme2voc.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1440">
+          <caret line="92" lean-forward="true" selection-start-line="92" selection-end-line="92" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/optimizer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-460">
-          <caret line="32" column="69" selection-start-line="32" selection-start-column="69" selection-end-line="32" selection-end-column="69" />
+        <state relative-caret-position="-107">
+          <caret line="52" column="19" lean-forward="true" selection-start-line="52" selection-start-column="19" selection-end-line="52" selection-end-column="19" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
           </folding>
@@ -436,8 +446,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dataloader.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="756">
-          <caret line="42" column="69" selection-start-line="42" selection-start-column="69" selection-end-line="42" selection-end-column="69" />
+        <state relative-caret-position="852">
+          <caret line="204" column="22" lean-forward="true" selection-start-line="204" selection-start-column="22" selection-end-line="204" selection-end-column="22" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>

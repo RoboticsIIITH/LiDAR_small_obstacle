@@ -4,13 +4,13 @@ import os
 import cv2
 from scipy.spatial.transform import Rotation as R
 
-path = '/media/ash/OS/small_obstacle_bag/raw_synced_data/stadium_3/'
+path = '/home/ash/labelme/IIIT_Labels/file_1/'
 img_path = os.path.join(path,"image")
 velo_path = os.path.join(path,"velodyne")
 depth_path = os.path.join(path, "depth")
 label_path = os.path.join(path,"labels")
-# if not os.path.exists(depth_path):
-#     os.makedirs(depth_path)
+if not os.path.exists(depth_path):
+    os.makedirs(depth_path)
 
 
 def read_txt(path):
@@ -23,7 +23,12 @@ def read_txt(path):
         return transform_matrix
 
 
-transform_matrix = read_txt('vindhya_transf_3.txt')
+# transform_matrix = read_txt('best_transf_mat.txt')
+transform_matrix = [[0.999843,0.00290231,-0.0174917, 0.227336],
+                    [-0.00323193,0.999817,-0.0188455,0.0215483],
+                    [0.0174338,0.0188991,0.999669,-0.0206499],
+                    [0,0,0,1]]
+
 # projection_matrix = read_txt('projection_mat.txt')
 projection_matrix = [[692.653256 ,0.000000, 629.321381],
                      [0.000,692.653256,330.685425],
@@ -69,9 +74,10 @@ def project_lid_on_img(lid_pt,T,p):
     return pix
 
 
-for file in sorted(os.listdir(velo_path))[0:]:
-
-    points = np.load(os.path.join(velo_path,file))
+for file in sorted(os.listdir(img_path)):
+    if file == ".DS_Store":
+        continue
+    points = np.load(os.path.join(velo_path,file.split('.')[0] + '.npy'))
     homo_points = points
     homo_points = homo_points.transpose()
     homo_points[3,:] = 1                         # Convert to homogeneous coordinates
@@ -82,7 +88,7 @@ for file in sorted(os.listdir(velo_path))[0:]:
     # proj_points = proj_points.transpose()
     shifted_points = shifted_points.transpose()[:,:3]
 
-    img = cv2.imread(os.path.join(img_path,file.split('.')[0] + '.png'))
+    img = cv2.imread(os.path.join(img_path,file))
     # img = cv2.undistort(img,cameraMatrix=zed_camera_matrix,distCoeffs=zed_dist)
     # depth_read = Image.open(os.path.join(depth_path,file.split('.')[0] + '.png'))
     # label_read = Image.open(os.pInput camera matrix ￼ath.join(label_path,file.split('.')[0] + '.png'))
@@ -100,24 +106,26 @@ for file in sorted(os.listdir(velo_path))[0:]:
         y = int(proj_points[i,1])
         depth = np.sqrt(pow(shifted_points[i][0],2) + pow(shifted_points[i][1],2) + pow(shifted_points[i][2],2))
         depth = np.clip(depth,a_min=0,a_max=100)
-    #     depth = (depth/100)*(65535-10) + 10
+        # depth = (depth/100)*(65535-10) + 10
         if (y < 720 and x < 1280 and x >= 0 and y >= 0 and shifted_points[i][2]>=0 and depth<15):
-            hsv = np.zeros((1, 1, 3)).astype(np.uint8)
-            hsv[:, :, 0] = int((depth) / (15) * 159)
-            hsv[0, 0, 1] = 255
-            hsv[0, 0, 2] = 200
-            hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-            cv2.circle(img,(x,y),1,color=(int(hsv[0,0,0]),int(hsv[0,0,1]),int(hsv[0,0,2])),thickness=2)
-            # depth_img[y,x] = depth
+            # depth_img[y, x] = depth
+            # hsv = np.zeros((1, 1, 3)).astype(np.uint8)
+            # hsv[:, :, 0] = int((depth) / (15) * 159)
+            # hsv[0, 0, 1] = 255
+            # hsv[0, 0, 2] = 200
+            # hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            # cv2.circle(img,(x,y),1,color=(int(hsv[0,0,0]),int(hsv[0,0,1]),int(hsv[0,0,2])),thickness=2)
+            cv2.circle(img,(x,y),2,color=(0,255,0),thickness=1)
     # x,y = indexes
     # for i in range(len(x)):
     #     if label_read[x[i],y[i]] == 2:
     #         cv2.circle(img,(y[i],x[i]),3,color=(0,255,0))
+
     if img is not None:
         cv2.imshow("window",img)
     else:
         continue
-    # cv2.imwrite(os.path.join(depth_path,file.split('.')[0] + '.png'),depth_img)
+    # cv2.imwrite(os.path.join(depth_path,file),depth_img)
     # cv2.waitKey(0)
     if cv2.waitKey(10) == ord('q'):
         print('Quitting....')
