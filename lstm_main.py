@@ -211,9 +211,9 @@ if __name__ == '__main__':
     # writer.add_text(text_string=str(list(model.children())),tag='model_info')
     # evaluator = Evaluator()
 
-    # checkpoint = torch.load('/scratch/ash/lstm_logs_2/checkpoints/exp_6/checkpoint_99.pth.tar')
-    # model.load_state_dict(checkpoint['state_dict'])
-    # optimizer.load_state_dict(checkpoint['optimizer'])
+    checkpoint = torch.load('checkpoints/exp_8/best_model.pth.tar',map_location='cpu')
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
 
     best_recall = 0.0
     """
