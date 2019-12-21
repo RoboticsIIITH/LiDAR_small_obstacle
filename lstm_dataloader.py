@@ -121,11 +121,11 @@ class ProjSet:
 
 
     def get_ring_labels(self, pointcloud, ring_num, reflectivity, label, T, P):
-        ringwise_points = []
-        ringwise_labels = []
-        ringwise_proj_points = []
-        pad_seq_len = 600
-        seq_lengths = []
+        # ringwise_points = []
+        # ringwise_labels = []
+        # ringwise_proj_points = []
+        # pad_seq_len = 600
+        # seq_lengths = []
 
         range_image = np.zeros((16,256,5),dtype=np.float)
         range_label = np.zeros((16,256))
@@ -221,14 +221,19 @@ class ProjSet:
 
 
     def transform_train(self,sample):
-        pt_cloud = torch.from_numpy(sample['point_cloud']).float()
-        labels = torch.from_numpy(sample['labels']).float()
-        ring_len = torch.from_numpy(sample['ring_lengths']).float()
+        # pt_cloud = torch.from_numpy(sample['point_cloud']).float()
+        # labels = torch.from_numpy(sample['labels']).float()
+        # ring_len = torch.from_numpy(sample['ring_lengths']).float()
+        range_img = torch.from_numpy(sample['range_image']).float()
+        range_label = torch.from_numpy(sample['range_label']).float()
 
-        return {'point_cloud':pt_cloud,
-                'labels':labels,
-                'ring_lengths':ring_len}
+        # return {'point_cloud':pt_cloud,
+        #         'labels':labels,
+        #         'ring_lengths':ring_len}
+        return {'range_image':range_img,
+                'range_label':range_label}
 
+    """
     def transform_test(self,sample):
         pt_cloud = torch.from_numpy(sample['point_cloud']).float()
         labels = torch.from_numpy(sample['labels']).float()
@@ -241,6 +246,7 @@ class ProjSet:
                 'ring_lengths': ring_len,
                 'image':img,
                 'proj_points':proj_points}
+    """
 
     def __getitem__(self, index):
         # label = self.labels[index]
@@ -276,16 +282,17 @@ class ProjSet:
         # inp_points, out_labels, seq_lengths, proj_points = self.get_ring_labels(lidar, ring_num,reflectivity,label,
         #                                                                         self.transf_matrix, self.proj_matrix)
 
-        range_img,range_label = self.get_ring_labels(lidar, ring_num,reflectivity,label,self.transf_matrix, self.proj_matrix)
+        range_img,range_label = self.get_ring_labels(lidar,ring_num,reflectivity,label,self.transf_matrix,self.proj_matrix)
 
         if self.split == "test":
-            img = self.images[index]
-            sample = {'image':img,'point_cloud':inp_points,'labels':out_labels,
-                      'ring_lengths':seq_lengths,'proj_points':proj_points}
+            # img = self.images[index]
+            # sample = {'image':img,'point_cloud':inp_points,'labels':out_labels,
+            #           'ring_lengths':seq_lengths,'proj_points':proj_points}
+            sample = {'range_image':range_img,'range_labels':range_label}
 
-            return self.transform_test(sample)
+            return self.transform_train(sample)
         else:
-            sample = {'point_cloud': inp_points, 'labels': out_labels,
-                      'ring_lengths': seq_lengths}
-
+            # sample = {'point_cloud': inp_points, 'labels': out_labels,
+            #           'ring_lengths': seq_lengths}
+            sample = {'range_image': range_img, 'range_labels': range_label}
             return self.transform_train(sample)

@@ -59,11 +59,12 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
 
     for sample in dataloader:
 
-        points, labels, seq_lengths = sample['point_cloud'], sample['labels'], sample['ring_lengths']
+        # points, labels, seq_lengths = sample['point_cloud'], sample['labels'], sample['ring_lengths']
+        range_img,range_label = sample['range_image'],sample['range_label']
 
-        points = points.view(points.shape[0] * points.shape[1], points.shape[2], -1)
-        labels = labels.view(labels.shape[0] * labels.shape[1], -1)
-        seq_lengths = seq_lengths.view(seq_lengths.shape[0] * seq_lengths.shape[1])
+        # points = points.view(points.shape[0] * points.shape[1], points.shape[2], -1)
+        # labels = labels.view(labels.shape[0] * labels.shape[1], -1)
+        # seq_lengths = seq_lengths.view(seq_lengths.shape[0] * seq_lengths.shape[1])
 
         # Scale/Normalise input to 0-1 range for each feature
         # points = scale_inp(points)
@@ -79,18 +80,20 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
         # labels = labels[:,:int(max_len.item())]
 
         # Shuffle rings batch
-        shuffle_indexes = torch.randperm(points.shape[0])
-        points,labels,seq_lengths = points[shuffle_indexes],labels[shuffle_indexes],seq_lengths[shuffle_indexes]
+        # shuffle_indexes = torch.randperm(points.shape[0])
+        # points,labels,seq_lengths = points[shuffle_indexes],labels[shuffle_indexes],seq_lengths[shuffle_indexes]
 
-        class_weights = calculate_weights_batch(labels, num_classes=3)
+        class_weights = calculate_weights_batch(range_label, num_classes=3)
         class_weights = torch.from_numpy(class_weights).float()
 
         # get only x,y,z features
         # points = points[:,:,:3]
-        points = points.permute(0,2,1)
+        # points = points.permute(0,2,1)
+        range_img = range_img.permute(0,3,1,2)
 
         if is_cuda:
-            points, labels, seq_lengths = points.cuda(), labels.cuda(), seq_lengths.cuda()
+            # points, labels, seq_lengths = points.cuda(), labels.cuda(), seq_lengths.cuda()
+            range_img,range_label = range_img.cuda(),range_label.cuda()
             class_weights = class_weights.cuda()
 
         # Focal loss
@@ -98,16 +101,20 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
 
         if mode == "train":
             optim.zero_grad()
-            pred = model.forward(points,seq_lengths)
+            # pred = model.forward(points,seq_lengths)
             # loss = model.compute_loss(pred, labels, weight=class_weights)
-            loss = loss_function.forward(pred,labels)
+            pred = model.forward(range_img)
+            # loss = loss_function.forward(pred,range_label)
+            loss = loss_function.forward(pred,range_label)
             loss.backward()
             optim.step()
         else:
             with torch.no_grad():
-                pred = model.forward(points, seq_lengths)
+                # pred = model.forward(points, seq_lengths)
                 # loss = model.compute_loss(pred, labels, weight=class_weights)
-                loss = loss_function.forward(pred,labels)
+                # loss = loss_function.forward(pred,labels)
+                pred = model.forward(range_img)
+                loss = loss_function.forward(pred,range_label)
 
         pred_label = torch.argmax(pred, dim=1).detach().cpu().numpy()
         evaluator.add_batch(pred_label,labels.cpu().numpy())
