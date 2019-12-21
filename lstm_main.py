@@ -59,12 +59,15 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
 
     for sample in dataloader:
 
-        # points, labels, seq_lengths = sample['point_cloud'], sample['labels'], sample['ring_lengths']
-        range_img,range_label = sample['range_image'],sample['range_label']
+        points, labels, seq_lengths = sample['point_cloud'], sample['labels'], sample['ring_lengths']
 
-        # points = points.view(points.shape[0] * points.shape[1], points.shape[2], -1)
-        # labels = labels.view(labels.shape[0] * labels.shape[1], -1)
-        # seq_lengths = seq_lengths.view(seq_lengths.shape[0] * seq_lengths.shape[1])
+        points = points.view(points.shape[0] * points.shape[1], points.shape[2], -1)
+        labels = labels.view(labels.shape[0] * labels.shape[1], -1)
+        seq_lengths = seq_lengths.view(seq_lengths.shape[0] * seq_lengths.shape[1])
+
+        # Two class label : Off-road and Road
+        # labels[labels == 2] = 0
+        # print(np.unique(labels.numpy()))
 
         # Scale/Normalise input to 0-1 range for each feature
         # points = scale_inp(points)
@@ -80,20 +83,19 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
         # labels = labels[:,:int(max_len.item())]
 
         # Shuffle rings batch
-        # shuffle_indexes = torch.randperm(points.shape[0])
-        # points,labels,seq_lengths = points[shuffle_indexes],labels[shuffle_indexes],seq_lengths[shuffle_indexes]
+        shuffle_indexes = torch.randperm(points.shape[0])
+        points,labels,seq_lengths = points[shuffle_indexes],labels[shuffle_indexes],seq_lengths[shuffle_indexes]
 
-        class_weights = calculate_weights_batch(range_label, num_classes=3)
+        class_weights = calculate_weights_batch(labels, num_classes=3)
+        # print("Class weights",class_weights)
         class_weights = torch.from_numpy(class_weights).float()
 
         # get only x,y,z features
         # points = points[:,:,:3]
-        # points = points.permute(0,2,1)
-        range_img = range_img.permute(0,3,1,2)
+        points = points.permute(0,2,1)
 
         if is_cuda:
-            # points, labels, seq_lengths = points.cuda(), labels.cuda(), seq_lengths.cuda()
-            range_img,range_label = range_img.cuda(),range_label.cuda()
+            points, labels, seq_lengths = points.cuda(), labels.cuda(), seq_lengths.cuda()
             class_weights = class_weights.cuda()
 
         # Focal loss
@@ -101,20 +103,17 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
 
         if mode == "train":
             optim.zero_grad()
-            # pred = model.forward(points,seq_lengths)
+            pred = model.forward(points,seq_lengths)
+            # print("pred shape",pred.shape)
             # loss = model.compute_loss(pred, labels, weight=class_weights)
-            pred = model.forward(range_img)
-            # loss = loss_function.forward(pred,range_label)
-            loss = loss_function.forward(pred,range_label)
+            loss = loss_function.forward(pred,labels)
             loss.backward()
             optim.step()
         else:
             with torch.no_grad():
-                # pred = model.forward(points, seq_lengths)
+                pred = model.forward(points, seq_lengths)
                 # loss = model.compute_loss(pred, labels, weight=class_weights)
-                # loss = loss_function.forward(pred,labels)
-                pred = model.forward(range_img)
-                loss = loss_function.forward(pred,range_label)
+                loss = loss_function.forward(pred,labels)
 
         pred_label = torch.argmax(pred, dim=1).detach().cpu().numpy()
         evaluator.add_batch(pred_label,labels.cpu().numpy())
@@ -142,6 +141,9 @@ def visualise_pred(model,dataset):
         image, points, points_label = sample['image'],sample['point_cloud'],sample['labels']
         seq_len, proj_points = sample['ring_lengths'],sample['proj_points']
 
+        # Two class label : Off-road and Road
+        # points_label[points_label == 2] = 0
+
         # points = scale_inp(points)
         # sorted_rings = torch.argsort(seq_len,descending=True)
         # points = points[sorted_rings]
@@ -149,6 +151,7 @@ def visualise_pred(model,dataset):
         # proj_points = proj_points[sorted_rings]
         # points = points[:,:,:3]
         points = points.permute(0, 2, 1)
+        points_label = points_label.numpy()
 
         with torch.no_grad():
             pred = model.forward(points, seq_len)
@@ -185,11 +188,11 @@ if __name__ == '__main__':
 
     # train_dataset = ProjSet("/scratch/ash/IIIT_Labels/train/",class_num=2,split="train")
     # val_dataset = ProjSet("/scratch/ash/IIIT_Labels/val/", class_num=2,split="val")
-    test_dataset = ProjSet("/home/ash/labelme/IIIT_Labels/val/", class_num=2,split="test")
+    test_dataset = ProjSet("/home/ash/labelme/IIIT_Labels/train/", class_num=2,split="test")
 
     batch_size = 8
     num_epochs = 100
-    save_interval = 10
+    save_interval = 1
     use_gpu = False
 
     # train_loader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True,drop_last=True,num_workers=4)
@@ -207,9 +210,9 @@ if __name__ == '__main__':
     # log_dir = "/scratch/ash/lstm_logs_2/logs/"
     # if not os.path.exists(log_dir):
     #     os.makedirs(log_dir)
-    # writer = SummaryWriter(os.path.join(log_dir,"exp_8"))
+    # writer = SummaryWriter(os.path.join(log_dir,"exp_9"))
     # writer.add_text(text_string=str(list(model.children())),tag='model_info')
-    # evaluator = Evaluator()
+    # evaluator = Evaluator(num_classes=3,inp_dim=600)
 
     checkpoint = torch.load('checkpoints/exp_8/best_model.pth.tar',map_location='cpu')
     model.load_state_dict(checkpoint['state_dict'])
@@ -231,7 +234,7 @@ if __name__ == '__main__':
             checkpoint = {'epoch': i,
                           'state_dict': model.state_dict(),
                           'optimizer': optimizer.state_dict()}
-            dir_path = os.path.join('/scratch/ash/lstm_logs_2/checkpoints', 'exp_8')
+            dir_path = os.path.join('/scratch/ash/lstm_logs_2/checkpoints', 'exp_9')
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
             file_path = os.path.join(dir_path, 'checkpoint_{}.pth.tar'.format(i))

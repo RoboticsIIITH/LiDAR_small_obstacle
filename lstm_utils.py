@@ -2,12 +2,12 @@ import numpy as np
 import time
 
 class Evaluator:
-    def __init__(self,num_classes=3):
+    def __init__(self,num_classes=3,inp_dim=600):
 
         self.num_classes = num_classes
         self.pred_labels = []
         self.target_labels = []
-        self.pad_dim = 650
+        self.pad_dim = inp_dim
 
     def add_batch(self,pred,target):
 
