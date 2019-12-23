@@ -65,12 +65,8 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
         labels = labels.view(labels.shape[0] * labels.shape[1], -1)
         seq_lengths = seq_lengths.view(seq_lengths.shape[0] * seq_lengths.shape[1])
 
-        # Two class label : Off-road and Road
-        # labels[labels == 2] = 0
-        # print(np.unique(labels.numpy()))
-
         # Scale/Normalise input to 0-1 range for each feature
-        # points = scale_inp(points)
+        points = scale_inp(points)
 
         # Sort rings by length in descending order (required for pack_pad_sequence function)
         # sorted_rings = torch.argsort(seq_lengths, descending=True)
@@ -86,9 +82,15 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
         shuffle_indexes = torch.randperm(points.shape[0])
         points,labels,seq_lengths = points[shuffle_indexes],labels[shuffle_indexes],seq_lengths[shuffle_indexes]
 
-        class_weights = calculate_weights_batch(labels, num_classes=3)
-        # print("Class weights",class_weights)
+        # Two class label: Obstacle and Road
+        # small_obstacle_mask = labels == 2
+        # small_obstacle_mask = small_obstacle_mask.cpu().numpy()
+        labels[labels == 2] = 0
+        # print(np.unique(labels.numpy()))
+
+        class_weights = calculate_weights_batch(labels, num_classes=2)
         class_weights = torch.from_numpy(class_weights).float()
+        # print("Class weights", class_weights)
 
         # get only x,y,z features
         # points = points[:,:,:3]
@@ -99,7 +101,7 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
             class_weights = class_weights.cuda()
 
         # Focal loss
-        loss_function = FocalLoss(gamma=2, alpha=class_weights)
+        loss_function = FocalLoss(gamma=0, alpha=class_weights)
 
         if mode == "train":
             optim.zero_grad()
@@ -116,28 +118,26 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
                 loss = loss_function.forward(pred,labels)
 
         pred_label = torch.argmax(pred, dim=1).detach().cpu().numpy()
-        evaluator.add_batch(pred_label,labels.cpu().numpy())
+        evaluator.add_batch(pred_label,labels.cpu().numpy(),[])
 
         accum_loss += loss.item()
         batch_count += 1
         writer.add_scalar('{}/Loss/iter'.format(mode), loss.item(), epoch * len_dataset + batch_count)
-        # print("{}_loss:{}".format(mode, loss.item()))
 
-    recall_obstacle,precision_obstacle,confusion_matrix = evaluator.get_metrics(class_num=2)
-    recall_road = confusion_matrix[1,1]
+    iou,iou_road = evaluator.get_metrics(class_num=1)
     writer.add_scalar('{}/Loss/epoch'.format(mode), accum_loss / batch_count, epoch)
-    writer.add_scalar('{}/Recall/obstacle'.format(mode), recall_obstacle, epoch)
-    writer.add_scalar('{}/Precision/obstacle'.format(mode), precision_obstacle, epoch)
-    writer.add_scalar('{}/Recall/road'.format(mode),recall_road, epoch)
+    writer.add_scalar('{}/IOU/small_obstacle'.format(mode),iou, epoch)
+    writer.add_scalar('{}/IOU/Road'.format(mode),iou_road,epoch)
+    # writer.add_scalar('{}/Recall/road'.format(mode),recall_road, epoch)
 
-    print("{}_loss:{},epoch:{}".format(mode, accum_loss / batch_count, epoch))
-
-    return recall_obstacle,confusion_matrix
+    # print("{}_loss:{},epoch:{}".format(mode, accum_loss / batch_count, epoch))
+    print("{}_IOU:{},epoch:{}".format(mode,iou,epoch))
+    return iou,[]
 
 
 def visualise_pred(model,dataset):
     model.eval()
-    for sample in dataset:
+    for sample,_ in dataset:
         image, points, points_label = sample['image'],sample['point_cloud'],sample['labels']
         seq_len, proj_points = sample['ring_lengths'],sample['proj_points']
 
@@ -159,7 +159,7 @@ def visualise_pred(model,dataset):
         seq_len = seq_len.cpu().numpy()
         pred_softmax = F.softmax(pred, dim=1).numpy()
         pred_out = np.argmax(pred_softmax,axis=1).squeeze()
-
+        # print(np.unique(pred_out))
         image = image.cpu().numpy()
         image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
         proj_points = proj_points.cpu().numpy()
@@ -172,10 +172,10 @@ def visualise_pred(model,dataset):
             for i in range(projection_pts.shape[0]):
                 if pred_labels[i] == 1:
                     pt_color = (0,255,0)
-                elif pred_labels[i] == 2:
-                    pt_color = (0,0,255)
+                # elif pred_labels[i] == 2:
+                #     pt_color = (0,0,255)
                 else:
-                    pt_color = (255,0,0)
+                    pt_color = (0,0,255)
                 cv2.circle(image,(int(projection_pts[i,0]),int(projection_pts[i,1])),2,pt_color,thickness=1)
         cv2.imshow("feed",image)
         if cv2.waitKey(10) == ord('q'):
@@ -186,61 +186,66 @@ def visualise_pred(model,dataset):
 
 if __name__ == '__main__':
 
-    # train_dataset = ProjSet("/scratch/ash/IIIT_Labels/train/",class_num=2,split="train")
-    # val_dataset = ProjSet("/scratch/ash/IIIT_Labels/val/", class_num=2,split="val")
-    test_dataset = ProjSet("/home/ash/labelme/IIIT_Labels/train/", class_num=2,split="test")
-
-    batch_size = 8
-    num_epochs = 100
+    visualise_mode = True
+    batch_size = 1
+    num_epochs = 50
     save_interval = 1
-    use_gpu = False
 
-    # train_loader = DataLoader(train_dataset,batch_size=batch_size,shuffle=True,drop_last=True,num_workers=4)
-    # val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4)
+    model = Conv1d(num_filters=128,kernel_size=3,inp_dim=4,num_classes=3,batch_size=16*batch_size,dropout_rate=0.2)
 
-    # model = LSTM(nb_layers=1,nb_lstm_units=128,batch_size=16*batch_size,is_cuda=use_gpu)
-    model = Conv1d(num_filters=128,kernel_size=3,inp_dim=4,batch_size=16*batch_size,dropout_rate=0.3)
+    if not visualise_mode:
+        train_dataset = ProjSet("/scratch/ash/IIIT_Labels/train/", class_num=2, split="train")
+        val_dataset = ProjSet("/scratch/ash/IIIT_Labels/val/", class_num=2, split="val")
+        use_gpu = not visualise_mode
+        print("Using GPU for training....")
 
-    if use_gpu:
-        model = model.cuda()
-    optimizer = torch.optim.Adam(model.parameters(),lr=1e-3)
-    # poly_decay = lambda epoch: pow((1-epoch/num_epochs),0.9)
-    # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,lr_lambda=poly_decay)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=4)
 
-    # log_dir = "/scratch/ash/lstm_logs_2/logs/"
-    # if not os.path.exists(log_dir):
-    #     os.makedirs(log_dir)
-    # writer = SummaryWriter(os.path.join(log_dir,"exp_9"))
-    # writer.add_text(text_string=str(list(model.children())),tag='model_info')
-    # evaluator = Evaluator(num_classes=3,inp_dim=600)
+        if use_gpu:
+            model = model.cuda()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+        # poly_decay = lambda epoch: pow((1-epoch/num_epochs),0.9)
+        # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,lr_lambda=poly_decay)
 
-    checkpoint = torch.load('checkpoints/exp_8/best_model.pth.tar',map_location='cpu')
-    model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
+        log_dir = "/scratch/ash/new_ring_wise/logs/"
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        writer = SummaryWriter(os.path.join(log_dir, "exp_1"))
+        writer.add_text(text_string=str(list(model.children())), tag='model_info')
+        evaluator = Evaluator(num_classes=2)
 
-    best_recall = 0.0
-    """
-    for i in range(0,num_epochs):
-        start = time.time()
-        _,__ = run_epoch(model,optimizer,train_loader,evaluator,writer,epoch=i,mode="train",is_cuda=use_gpu)
-        print("Epoch took:",time.time()-start)
-        # scheduler.step(epoch=i)
+        # checkpoint = torch.load('/scratch/ash/lstm_logs_2/checkpoints/exp_6/checkpoint_99.pth.tar')
+        # model.load_state_dict(checkpoint['state_dict'])
+        # optimizer.load_state_dict(checkpoint['optimizer'])
 
-        if i % save_interval == 0 and i != 0:
+        best_recall = 0.0
 
-            recall,confusion_mat = run_epoch(model, optimizer, val_loader, evaluator, writer, epoch=i, mode="val", is_cuda=use_gpu)
-            writer.add_text("confusion matrix on val set",str(list(confusion_mat)),global_step=i)
-            print("Saving checkpoint for Epoch:{}".format(i))
-            checkpoint = {'epoch': i,
-                          'state_dict': model.state_dict(),
-                          'optimizer': optimizer.state_dict()}
-            dir_path = os.path.join('/scratch/ash/lstm_logs_2/checkpoints', 'exp_9')
-            if not os.path.exists(dir_path):
-                os.makedirs(dir_path)
-            file_path = os.path.join(dir_path, 'checkpoint_{}.pth.tar'.format(i))
-            torch.save(checkpoint, file_path)
-            if recall > best_recall:
-                shutil.copyfile(file_path,os.path.join(dir_path,'best_model.pth.tar'))
-                best_recall = recall
-    """
-    visualise_pred(model,test_dataset)
+        for i in range(0, num_epochs):
+            start = time.time()
+            _, __ = run_epoch(model, optimizer, train_loader, evaluator, writer, epoch=i, mode="train", is_cuda=use_gpu)
+            print("Epoch took:", time.time() - start)
+            # scheduler.step(epoch=i)
+
+            if i % save_interval == 0 and i != 0:
+                recall, confusion_mat = run_epoch(model, optimizer, val_loader, evaluator, writer, epoch=i, mode="val",
+                                                  is_cuda=use_gpu)
+                # writer.add_text("confusion matrix on val set", str(list(confusion_mat)), global_step=i)
+                print("Saving checkpoint for Epoch:{}".format(i))
+                checkpoint = {'epoch': i,
+                              'state_dict': model.state_dict(),
+                              'optimizer': optimizer.state_dict()}
+                dir_path = os.path.join('/scratch/ash/new_ring_wise/checkpoints', 'exp_1')
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path)
+                file_path = os.path.join(dir_path, 'checkpoint_{}.pth.tar'.format(i))
+                torch.save(checkpoint, file_path)
+                if recall > best_recall:
+                    shutil.copyfile(file_path, os.path.join(dir_path, 'best_model.pth.tar'))
+                    best_recall = recall
+
+    else:
+        test_dataset = ProjSet("/home/ash/labelme/IIIT_Labels/val/", class_num=2, split="test")
+        checkpoint = torch.load('checkpoints/exp_8/best_model.pth.tar', map_location='cpu')
+        model.load_state_dict(checkpoint['state_dict'])
+        visualise_pred(model, test_dataset)

@@ -66,16 +66,14 @@ class LSTM(nn.Module):
 
 
 class Conv1d(nn.Module):
-    def __init__(self, num_filters,kernel_size,inp_dim=3,batch_size=256,dropout_rate=0.4,is_cuda=False):
+    def __init__(self, num_filters,kernel_size,inp_dim,num_classes,batch_size=256,dropout_rate=0.4):
         super(Conv1d, self).__init__()
         self.num_filters = num_filters
         self.kernel_size = kernel_size
         self.batch_size = batch_size
-        self.num_classes = 3
+        self.num_classes = num_classes
         self.dropout_rate = dropout_rate
         self.inp_dim = inp_dim
-        self.is_cuda = is_cuda
-
         # build actual NN
         self.__build_model()
 

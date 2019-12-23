@@ -124,30 +124,38 @@ class ProjSet:
         ringwise_points = []
         ringwise_labels = []
         ringwise_proj_points = []
+        total_bins = []
         pad_seq_len = 600
         seq_lengths = []
+        # proj_dict = dict()
 
         for ring_id in range(1,17):
-            # Get lidar points corresponding to each ring
+
+            ring_bin = []
+
             temp_points = pointcloud[ring_num == ring_id]
-            refl_ring_wise = reflectivity[ring_num == ring_id]
+            # refl_ring_wise = reflectivity[ring_num == ring_id]
             proj_pts = self.project_lid_on_img(temp_points.transpose(), T, P).transpose()
             # Select only points lying in image FOV
             valid_indexes = []
             point_label = []
 
-
             for index, pt in enumerate(proj_pts):
                 y, x = int(pt[0]), int(pt[1])
-                if x < 720 and y < 1280 and x > 0 and y > 0 and temp_points[index, 2] > 0:
+                if (0 < x < 720) and (0 < y < 1280) and temp_points[index, 2] > 0:
+                    bin_index = int(y / 1280 * 256)
+                    # proj_dict[(ring_id,bin_index)] = [x,y]
+
+                    ring_bin.append(bin_index)
                     valid_indexes.append(index)
                     point_label.append(label[x, y])
 
             proj_pts = proj_pts[valid_indexes]
             temp_points = temp_points[valid_indexes]
             temp_points = temp_points[:, :3]                    # Discard homogeneous coordinate dim
-            refl_ring_wise = refl_ring_wise[valid_indexes]
+            # refl_ring_wise = refl_ring_wise[valid_indexes]
             point_label = np.array(point_label)
+            ring_bin = np.array(ring_bin)
             ring_values = ring_id * np.ones(temp_points.shape[0])
 
             # Sort points from left to right for each ring
@@ -155,25 +163,28 @@ class ProjSet:
             proj_pts = proj_pts[sorted_indexes]
             temp_points = temp_points[sorted_indexes]
             point_label = point_label[sorted_indexes]
-            refl_ring_wise = refl_ring_wise[sorted_indexes]
+            ring_bin = ring_bin[sorted_indexes]
+            # refl_ring_wise = refl_ring_wise[sorted_indexes]
 
             # Pad each sequence to have consistent length = pad_seq_len
             if temp_points.shape[0] >= pad_seq_len:
                 temp_points = temp_points[:pad_seq_len]
                 point_label = point_label[:pad_seq_len]
                 proj_pts = proj_pts[:pad_seq_len]
-                refl_ring_wise = refl_ring_wise[:pad_seq_len]
+                # refl_ring_wise = refl_ring_wise[:pad_seq_len]
                 ring_values = ring_values[:pad_seq_len]
+                ring_bin = ring_bin[:pad_seq_len]
                 seq_lengths.append(pad_seq_len)
             else:
                 seq_lengths.append(temp_points.shape[0])
                 pad_pts = np.zeros((pad_seq_len - temp_points.shape[0], 3))
                 temp_points = np.append(temp_points, pad_pts, axis=0)
-                refl_ring_wise = np.append(refl_ring_wise,np.zeros(pad_seq_len-refl_ring_wise.shape[0]))
+                # refl_ring_wise = np.append(refl_ring_wise,np.zeros(pad_seq_len-refl_ring_wise.shape[0]))
                 pad_labels = -100 * np.ones(pad_seq_len - point_label.shape[0])
                 point_label = np.append(point_label, pad_labels)
                 proj_pts = np.append(proj_pts,np.zeros((pad_seq_len-proj_pts.shape[0],2)),axis=0)
                 ring_values = np.append(ring_values,np.zeros(pad_seq_len-ring_values.shape[0]),axis=0)
+                ring_bin = np.append(ring_bin,-1*np.ones(pad_seq_len-ring_bin.shape[0]),axis=0)
 
             # Concatenate x,y,z coordinates of pointCloud and their reflectivity
             # temp_points = np.concatenate((temp_points,refl_ring_wise[:,np.newaxis]),axis=1)
@@ -182,11 +193,10 @@ class ProjSet:
             ringwise_points.append(temp_points)
             ringwise_labels.append(point_label)
             ringwise_proj_points.append(proj_pts)
-
+            total_bins.append(ring_bin)
         
         return np.array(ringwise_points), np.array(ringwise_labels),\
-               np.array(seq_lengths), np.array(ringwise_proj_points)
-
+               np.array(seq_lengths), np.array(ringwise_proj_points),np.array(total_bins)
 
 
     def transform_train(self,sample):
@@ -243,14 +253,14 @@ class ProjSet:
 
         lidar = self.rotate_axis(lidar.transpose()).transpose()
 
-        inp_points, out_labels, seq_lengths, proj_points = self.get_ring_labels(lidar, ring_num,reflectivity,label,self.transf_matrix, self.proj_matrix)
+        inp_points, out_labels, seq_lengths, proj_points,bin_num = self.get_ring_labels(lidar, ring_num,reflectivity,label,self.transf_matrix, self.proj_matrix)
 
         if self.split == "test":
             img = self.images[index]
             sample = {'image':img,'point_cloud':inp_points,'labels':out_labels,
                       'ring_lengths':seq_lengths,'proj_points':proj_points}
 
-            return self.transform_test(sample)
+            return self.transform_test(sample),bin_num
         else:
             sample = {'point_cloud': inp_points, 'labels': out_labels,
                       'ring_lengths': seq_lengths}
