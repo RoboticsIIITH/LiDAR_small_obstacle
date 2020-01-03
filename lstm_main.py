@@ -66,7 +66,7 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
         seq_lengths = seq_lengths.view(seq_lengths.shape[0] * seq_lengths.shape[1])
 
         # Scale/Normalise input to 0-1 range for each feature
-        points = scale_inp(points)
+        # points = scale_inp(points)
 
         # Sort rings by length in descending order (required for pack_pad_sequence function)
         # sorted_rings = torch.argsort(seq_lengths, descending=True)
@@ -170,13 +170,15 @@ def visualise_pred(model,dataset):
             pred_labels = pred_out[ring_id,0:len]
 
             for i in range(projection_pts.shape[0]):
-                if pred_labels[i] == 1:
-                    pt_color = (0,255,0)
-                # elif pred_labels[i] == 2:
-                #     pt_color = (0,0,255)
-                else:
-                    pt_color = (0,0,255)
-                cv2.circle(image,(int(projection_pts[i,0]),int(projection_pts[i,1])),2,pt_color,thickness=1)
+                if points[ring_id,1,i] > 0 and -8<points[ring_id,0,i]<8:
+                    if pred_labels[i] == 1:
+                        pt_color = (0, 255, 0)
+                    # elif pred_labels[i] == 2:
+                    #     pt_color = (0,0,255)
+                    else:
+                        pt_color = (0, 0, 255)
+                    cv2.circle(image, (int(projection_pts[i, 0]), int(projection_pts[i, 1])), 2, pt_color, thickness=1)
+
         cv2.imshow("feed",image)
         if cv2.waitKey(10) == ord('q'):
             print('Quitting....')
@@ -246,6 +248,6 @@ if __name__ == '__main__':
 
     else:
         test_dataset = ProjSet("/home/ash/labelme/IIIT_Labels/val/", class_num=2, split="test")
-        checkpoint = torch.load('checkpoints/exp_8/best_model.pth.tar', map_location='cpu')
+        checkpoint = torch.load('../checkpoints/exp_8/best_model.pth.tar', map_location='cpu')
         model.load_state_dict(checkpoint['state_dict'])
         visualise_pred(model, test_dataset)
