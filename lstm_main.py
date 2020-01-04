@@ -137,7 +137,7 @@ def run_epoch(model,optim,dataloader,evaluator,writer,epoch,mode,is_cuda=False):
 
 def visualise_pred(model,dataset):
     model.eval()
-    for sample,_ in dataset:
+    for sample,bin_indexes in dataset:
         image, points, points_label = sample['image'],sample['point_cloud'],sample['labels']
         seq_len, proj_points = sample['ring_lengths'],sample['proj_points']
 
@@ -164,20 +164,54 @@ def visualise_pred(model,dataset):
         image = cv2.cvtColor(image,cv2.COLOR_RGB2BGR)
         proj_points = proj_points.cpu().numpy()
 
+        range_label = np.zeros((16,256))
+        proj_dict = dict()
+        pred_out[pred_out==2] = 0
+
         for ring_id in range(16):
+            label_count = np.zeros((256, 2))
+            label_count = np.concatenate((label_count, 100 * np.ones((256, 1))), axis=1)
+
             len = int(seq_len[ring_id])
-            projection_pts = proj_points[ring_id,0:len]
-            pred_labels = pred_out[ring_id,0:len]
+            projection_pts = proj_points[ring_id,:len]
+            pred_labels = pred_out[ring_id,:len]
+            bin_ids = bin_indexes[ring_id,:len]
 
             for i in range(projection_pts.shape[0]):
-                if points[ring_id,1,i] > 0 and -8<points[ring_id,0,i]<8:
-                    if pred_labels[i] == 1:
-                        pt_color = (0, 255, 0)
-                    # elif pred_labels[i] == 2:
-                    #     pt_color = (0,0,255)
-                    else:
-                        pt_color = (0, 0, 255)
-                    cv2.circle(image, (int(projection_pts[i, 0]), int(projection_pts[i, 1])), 2, pt_color, thickness=1)
+                x,y = int(projection_pts[i,0]),int(projection_pts[i,1])
+                label_count[int(bin_ids[i]),int(pred_labels[i])] += 1
+                label_count[int(bin_ids[i]),2] = 0
+                proj_dict[ring_id,bin_ids[i]] = [x,y]
+
+            range_label[ring_id] = np.argmax(label_count,axis=1)
+
+        range_label[range_label == 2] = -10
+
+        range_label_copy = range_label.copy()
+        # range_label_copy = range_label[0:7]
+        range_label_copy = range_label_copy.transpose(1,0)
+        range_label_copy = np.reshape(range_label_copy,(256,1,16))
+        range_label_copy = torch.from_numpy(range_label_copy).float()
+
+        weights = np.array([20,15,10])
+        weights = np.reshape(weights,(1,1,3))
+        weights = torch.from_numpy(weights).float()
+
+        conv_label = F.conv1d(range_label_copy,weights,stride=1,padding=1)
+        conv_label = conv_label.numpy()
+        conv_label = conv_label.squeeze()
+        conv_label = conv_label.transpose(1,0)
+
+        print(np.unique(conv_label))
+        color_pred = np.zeros((16, 256, 3))
+        color_pred[conv_label == 30] = [0, 255, 0]
+        # color_pred[conv_label == ] = [0, 0, 255]
+        # color_pred[pred_out == 2] = [255, 0, 0]
+
+        for key in proj_dict:
+            color = color_pred[int(key[0]), int(key[1])]
+            pt_color = [int(x) for x in color]
+            cv2.circle(image, (proj_dict[key][0], proj_dict[key][1]), 2, pt_color, thickness=1)
 
         cv2.imshow("feed",image)
         if cv2.waitKey(10) == ord('q'):
