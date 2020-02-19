@@ -38,3 +38,30 @@ class FocalLoss(nn.Module):
         loss = -1 * (1 - pt)**self.gamma * logpt
         if self.size_average: return loss.mean()
         else: return loss.sum()
+
+
+class MSELoss(nn.Module):
+
+    def __init__(self,weights=None):
+        super(MSELoss,self).__init__()
+        self.weights = weights
+
+    def forward(self,input,target,ignore_index=-100):
+        if input.dim()>2:
+            input = input.transpose(1, 2)                         # N,C,L => N,L,C
+            input = input.contiguous().view(-1, input.size(2))    # N,L,C => N*L,C
+        target = target.view(-1, 1)
+
+        ignore_mask = (target != ignore_index).squeeze()
+        target = target[ignore_mask].squeeze()
+        input = input[ignore_mask].squeeze()
+
+        if self.weights is not None:
+            if self.weights.type() != input.data.type():
+                self.weights = self.weights.type_as(input.data)
+            at = self.weights.gather(0, target.data.view(-1).long())
+
+        loss = (target - input)**2
+        print(loss[230:240].data)
+        loss = (at*loss).mean()
+        return loss.mean()

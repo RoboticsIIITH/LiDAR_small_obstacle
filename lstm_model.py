@@ -78,21 +78,29 @@ class Conv1d(nn.Module):
         self.__build_model()
 
     def __build_model(self):
-        self.conv1 = nn.Conv1d(in_channels=self.inp_dim,out_channels=self.num_filters,kernel_size=self.kernel_size,stride=1,padding=1)
-        self.conv2 = nn.Conv1d(in_channels=self.num_filters,out_channels=256,kernel_size=5,stride=2,padding=2)
-        self.max_pool = nn.MaxPool1d(kernel_size=2)
-        self.dropout = nn.Dropout(p=self.dropout_rate)
-        self.de_conv1 = nn.ConvTranspose1d(in_channels=256,out_channels=64,kernel_size=5,stride=2,output_padding=1,padding=2)
-        self.de_conv2 = nn.ConvTranspose1d(in_channels=64,out_channels=self.num_classes,kernel_size=3,stride=2,padding=1,output_padding=1)
+        # self.conv1 = nn.Conv1d(in_channels=self.inp_dim,out_channels=64,kernel_size=3,stride=1,padding=1)
+        # self.dense_layer = Dense(64,64)
+        # self.max_pool = nn.MaxPool1d(kernel_size=2)
+        # self.dropout = nn.Dropout(p=self.dropout_rate)
+        # self.de_conv1 = nn.ConvTranspose1d(in_channels=192,out_channels=128,kernel_size=3,stride=2,output_padding=1,padding=2)
+        # self.de_conv2 = nn.ConvTranspose1d(in_channels=128,out_channels=1,kernel_size=3,stride=2,padding=1,output_padding=1)
+        self.inp_layer = Dense(self.inp_dim,16)
+        self.middle_layer = nn.Conv1d(256,64,3,1,1)
+        self.out_layer = nn.Conv1d(64,3,1)
+
 
     def forward(self, X, *args):
-        X = F.relu(self.conv1(X))
-        X = self.dropout(X)
-        X = F.relu(self.conv2(X))
-        X = self.max_pool(X)
-        X = self.dropout(X)
-        X = F.relu(self.de_conv1(X))
-        X = self.de_conv2(X)
+        # X = F.relu(self.conv1(X))
+        # X = self.dropout(X)
+        # X = F.relu(self.conv2(X))
+        # X = self.max_pool(X)
+        # X = self.dropout(X)
+        # X = F.relu(self.de_conv1(X))
+        # X = self.de_conv2(X)
+        X = F.rrelu(self.inp_layer(X))
+        X = F.rrelu(self.middle_layer(X))
+        X = self.out_layer(X)
+        # X = F.sigmoid(X)
         return X
 
     def compute_loss(self, Y_hat, Y, weight,ignore_label=-100):
@@ -102,6 +110,24 @@ class Conv1d(nn.Module):
         Y = Y.long()
         ce_loss = criterion(Y_hat,Y)
         return ce_loss
+
+
+class Dense(nn.Module):
+
+    def __init__(self, C_in, C_out):
+        super(Dense, self).__init__()
+        self.squeeze_1 = nn.Conv1d(C_in, C_out, 1, 1, 0)
+        self.squeeze_5 = nn.Conv1d(C_in, C_out, 5, 1, 2)
+        self.squeeze_9 = nn.Conv1d(C_in, C_out, 9, 1, 4)
+        self.squeeze_15 = nn.Conv1d(C_in,C_out, 15, 1, 7)
+
+    def forward(self, x):
+        x_1 = self.squeeze_1(x)
+        x_3 = self.squeeze_5(x)
+        x_7 = self.squeeze_9(x)
+        x_11 = self.squeeze_15(x)
+        concat = torch.cat((x_1,x_3,x_7,x_11),dim=1)
+        return concat
 
 
 class Linear(nn.Module):

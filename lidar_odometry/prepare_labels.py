@@ -4,9 +4,6 @@ import os
 import cv2
 from matplotlib import pyplot as plt
 from scipy.spatial.transform import Rotation as R
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import Ridge,HuberRegressor,RANSACRegressor,TheilSenRegressor
 import time
 
 
@@ -36,12 +33,12 @@ projection_matrix = np.array([[692.653256, 0.000000, 629.321381, 0.000],
                             [0.000, 692.653256, 330.685425, 0.000],
                             [0.000000, 0.000000, 1.00000, 0.000]])
 
-dir_path = "/media/ash/OS/IIIT_Labels/train/file_1/"
+dir_path = "/media/ash/OS/IIIT_Labels/val/vindhya_1"
 labels_path = os.path.join(dir_path,"labels")
 odom_path = os.path.join(dir_path,"odometry")
 img_path = os.path.join(dir_path,"image")
 pointcloud_path = os.path.join(dir_path,"velodyne")
-transform_matrix = read_txt('../file_1_transf.txt')
+transform_matrix = read_txt('../combined_transf_3.txt')
 
 
 def get_breakpoints(pts):
@@ -87,7 +84,7 @@ def get_breakpoints(pts):
 
 def get_odometry(path):
     try:
-        odom = np.load(path,allow_pickle=True)
+        odom = np.load(path)
     except IOError:
         return None
     t_vec, quat = np.array(odom[0]), np.array(odom[1])
@@ -115,11 +112,12 @@ if __name__ == "__main__":
         trans_1_matrix = get_odometry(os.path.join(odom_path, file_name))
         context_points = np.array([])
         context_pred = np.array([])
+        depth = np.zeros((720,1280),dtype=np.float16)
 
-        for j in range(i-1,i+2):
+        for j in range(i-5,i+5):
             # Loading up everything
             if 0 <= j < len(files):
-                points = np.load(os.path.join(pointcloud_path, files[j]),allow_pickle=True)
+                points = np.load(os.path.join(pointcloud_path, files[j]))
             else:
                 continue
             # Transforming Point-Cloud to NED frame through rotation
@@ -151,38 +149,44 @@ if __name__ == "__main__":
                 for k, pt in enumerate(proj_pts):
                     x, y = int(pt[0]), int(pt[1])
                     if (0 < x < 1280) and (0 < y < 720):
+                        depth[y,x] = np.linalg.norm(ring_pts[k,:3])
                         valid_indexes.append(k)
 
                 ring_pts = ring_pts[valid_indexes]
                 proj_pts = proj_pts[valid_indexes]
-                pred = get_breakpoints(ring_pts)
+                # pred = get_breakpoints(ring_pts)
                 if context_points.shape[0]:
                     context_points = np.concatenate((context_points,proj_pts),axis=0)
-                    context_pred = np.append(context_pred,pred,axis=0)
+                    # context_pred = np.append(context_pred,pred,axis=0)
                 else:
                     context_points = proj_pts
-                    context_pred = pred
+                    # context_pred = pred
 
-        # region_prop = np.zeros((720,1280),dtype=np.float16)
-        # sigma = 5
-        # span = 15
-        for k, pt in enumerate(context_points):
-            x, y = int(pt[0]), int(pt[1])
-            if context_pred[k] == -1:
-                # if label[y,x] == 2:
-                pt_color = (0, 0, 255)
-            else:
-                pt_color = (0,0,0)
-            # elif context_pred[k] == 1:
-            #     pt_color = (255, 0, 0)
-            # else:
-            #     pt_color = (0,0,0)
-            cv2.circle(img, (x, y), 1, pt_color, thickness=1)
-                # x_0, y_0 = int(pt[1]), int(pt[0])
-                # for x in range(x_0-span,x_0+span+1):
-                #     for y in range(y_0-span,y_0+span+1):
-                #         if 0<x<720 and 0<y<1280:
-                #             region_prop[x,y] += np.exp(-0.5*((x-x_0)**2 + (y-y_0)**2)/sigma**2)
+        label_mask = (label == 2).astype(np.float32)
+        # depth = depth.astype(int)
+        # label_mask = label_mask & depth
+        label_mask = label_mask.astype(np.float32)
+        label_mask = cv2.GaussianBlur(label_mask,(13,13),5)
+        # label_mask = cv2.blur(label_mask,(17,17))
+        valid_regions = label_mask > 0
+        label_mask[valid_regions] = 1
+        label_mask = 100*label_mask
+        # label_mask[valid_regions] = 1 - label_mask[valid_regions]
+        # label_mask = label_mask / np.max(label_mask)
+        # label_mask[label==2] = 1
+        depth_mask = depth>0
+        label_mask[depth_mask] = depth[depth_mask]
+        plt.imshow(label_mask)
+        plt.show()
+        # label_mask[label_mask>0] = 255
+        # label_mask = label_mask.astype(np.uint8)
+        # for k, pt in enumerate(context_points):
+        #     x, y = int(pt[0]), int(pt[1])
+        #     if context_pred[k] == -1 and label[y,x] != 0:
+        #         pt_color = (0, 0, 255)
+        #     else:
+        #         pt_color = (255,0,0)
+        #     cv2.circle(img, (x, y), 1, pt_color, thickness=1)
 
         # region_prop = np.clip(region_prop,0,1)
         # region_prop = 255*region_prop
@@ -194,9 +198,9 @@ if __name__ == "__main__":
         #     os.makedirs(root_path)
         # np.save(os.path.join(root_path,file_name),region_prop)
 
-        cv2.imshow("window",img)
+        # cv2.imshow("label",label_mask)
         if cv2.waitKey(10) == ord('q'):
             print('Quitting....')
             break
         # time.sleep(0.05)
-        cv2.waitKey(0)
+        # cv2.waitKey(0)

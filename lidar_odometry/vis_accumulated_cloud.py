@@ -17,6 +17,7 @@ path = "/media/ash/OS/small_obstacle_bag/synced_data/seq_2/groundTruth"
 img_path = "/media/ash/OS/small_obstacle_bag/synced_data/seq_2/image/"
 bag = rosbag.Bag('gt_seq2.bag','w')
 
+
 def talker():
     rospy.init_node("lidar_data",disable_signals=True)
     pub = rospy.Publisher("velodyne_points", PointCloud2,queue_size = 10)

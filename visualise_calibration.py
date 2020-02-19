@@ -4,7 +4,7 @@ import os
 import cv2
 from scipy.spatial.transform import Rotation as R
 
-path = '/home/ash/labelme/IIIT_Labels/file_1/'
+path = '/media/ash/OS/IIIT_Labels/train/file_1/'
 img_path = os.path.join(path,"image")
 velo_path = os.path.join(path,"velodyne")
 depth_path = os.path.join(path, "depth")
@@ -23,11 +23,11 @@ def read_txt(path):
         return transform_matrix
 
 
-# transform_matrix = read_txt('best_transf_mat.txt')
-transform_matrix = [[0.999843,0.00290231,-0.0174917, 0.227336],
-                    [-0.00323193,0.999817,-0.0188455,0.0215483],
-                    [0.0174338,0.0188991,0.999669,-0.0206499],
-                    [0,0,0,1]]
+transform_matrix = read_txt('file_1_transf.txt')
+# transform_matrix = [[0.999843,0.00290231,-0.0174917, 0.227336],
+#                     [-0.00323193,0.999817,-0.0188455,0.0215483],
+#                     [0.0174338,0.0188991,0.999669,-0.0206499],
+#                     [0,0,0,1]]
 
 # projection_matrix = read_txt('projection_mat.txt')
 projection_matrix = [[692.653256 ,0.000000, 629.321381],
@@ -109,13 +109,13 @@ for file in sorted(os.listdir(img_path)):
         # depth = (depth/100)*(65535-10) + 10
         if (y < 720 and x < 1280 and x >= 0 and y >= 0 and shifted_points[i][2]>=0 and depth<15):
             # depth_img[y, x] = depth
-            # hsv = np.zeros((1, 1, 3)).astype(np.uint8)
-            # hsv[:, :, 0] = int((depth) / (15) * 159)
-            # hsv[0, 0, 1] = 255
-            # hsv[0, 0, 2] = 200
-            # hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-            # cv2.circle(img,(x,y),1,color=(int(hsv[0,0,0]),int(hsv[0,0,1]),int(hsv[0,0,2])),thickness=2)
-            cv2.circle(img,(x,y),2,color=(0,255,0),thickness=1)
+            hsv = np.zeros((1, 1, 3)).astype(np.uint8)
+            hsv[:, :, 0] = int((depth) / (15) * 159)
+            hsv[0, 0, 1] = 255
+            hsv[0, 0, 2] = 200
+            hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            cv2.circle(img,(x,y),1,color=(int(hsv[0,0,0]),int(hsv[0,0,1]),int(hsv[0,0,2])),thickness=2)
+            # cv2.circle(img,(x,y),2,color=(0,255,0),thickness=1)
     # x,y = indexes
     # for i in range(len(x)):
     #     if label_read[x[i],y[i]] == 2:
