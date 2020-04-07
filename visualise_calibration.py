@@ -4,7 +4,7 @@ import os
 import cv2
 from scipy.spatial.transform import Rotation as R
 
-path = '/media/ash/OS/IIIT_Labels/train/file_1/'
+path = '/media/ash/OS/IIIT_Labels/test/seq_3/'
 img_path = os.path.join(path,"image")
 velo_path = os.path.join(path,"velodyne")
 depth_path = os.path.join(path, "depth")
@@ -18,16 +18,10 @@ def read_txt(path):
         rows = f.read().split('\n')[:-1]
         values = [row.split(' ')[:-1] for row in rows]
         transform_matrix = np.array(values,dtype=np.float)
-        # print("Transform matrix :")
-        # print(transform_matrix)
         return transform_matrix
 
 
-transform_matrix = read_txt('file_1_transf.txt')
-# transform_matrix = [[0.999843,0.00290231,-0.0174917, 0.227336],
-#                     [-0.00323193,0.999817,-0.0188455,0.0215483],
-#                     [0.0174338,0.0188991,0.999669,-0.0206499],
-#                     [0,0,0,1]]
+transform_matrix = read_txt('best_transf_mat_2.txt')
 
 # projection_matrix = read_txt('projection_mat.txt')
 projection_matrix = [[692.653256 ,0.000000, 629.321381],
@@ -74,7 +68,7 @@ def project_lid_on_img(lid_pt,T,p):
     return pix
 
 
-for file in sorted(os.listdir(img_path)):
+for file in sorted(os.listdir(label_path)):
     if file == ".DS_Store":
         continue
     points = np.load(os.path.join(velo_path,file.split('.')[0] + '.npy'))
@@ -94,7 +88,7 @@ for file in sorted(os.listdir(img_path)):
     # label_read = Image.open(os.pInput camera matrix ￼ath.join(label_path,file.split('.')[0] + '.png'))
     # label_read = np.array(label_read)
     # depth_read = np.array(depth_read)
-    # depth_img = np.zeros((img.shape[0],img.shape[1]),dtype=np.uint16)
+    depth_img = np.zeros((img.shape[0],img.shape[1]),dtype=np.uint16)
     # if label_read is None:
     #     continue
     rot, _ = cv2.Rodrigues(rot_vec)
@@ -106,16 +100,16 @@ for file in sorted(os.listdir(img_path)):
         y = int(proj_points[i,1])
         depth = np.sqrt(pow(shifted_points[i][0],2) + pow(shifted_points[i][1],2) + pow(shifted_points[i][2],2))
         depth = np.clip(depth,a_min=0,a_max=100)
-        # depth = (depth/100)*(65535-10) + 10
-        if (y < 720 and x < 1280 and x >= 0 and y >= 0 and shifted_points[i][2]>=0 and depth<15):
+        depth = (depth/100)*(65535-10) + 10
+        if (0 < y < 720 and 0 < x < 1280 and shifted_points[i][2] >= 0):
             # depth_img[y, x] = depth
-            hsv = np.zeros((1, 1, 3)).astype(np.uint8)
-            hsv[:, :, 0] = int((depth) / (15) * 159)
-            hsv[0, 0, 1] = 255
-            hsv[0, 0, 2] = 200
-            hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-            cv2.circle(img,(x,y),1,color=(int(hsv[0,0,0]),int(hsv[0,0,1]),int(hsv[0,0,2])),thickness=2)
-            # cv2.circle(img,(x,y),2,color=(0,255,0),thickness=1)
+            # hsv = np.zeros((1, 1, 3)).astype(np.uint8)
+            # hsv[:, :, 0] = int((depth) / (15) * 159)
+            # hsv[0, 0, 1] = 255
+            # hsv[0, 0, 2] = 200
+            # hsv = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            # cv2.circle(img,(x,y),1,color=(int(hsv[0,0,0]),int(hsv[0,0,1]),int(hsv[0,0,2])),thickness=1)
+            cv2.circle(img,(x,y),2,color=(0,255,0),thickness=1)
     # x,y = indexes
     # for i in range(len(x)):
     #     if label_read[x[i],y[i]] == 2:
@@ -123,11 +117,11 @@ for file in sorted(os.listdir(img_path)):
 
     if img is not None:
         cv2.imshow("window",img)
-    else:
-        continue
+    # else:
+    #     continue
     # cv2.imwrite(os.path.join(depth_path,file),depth_img)
-    # cv2.waitKey(0)
-    if cv2.waitKey(10) == ord('q'):
-        print('Quitting....')
-        break
+    cv2.waitKey(0)
+    # if cv2.waitKey(10) == ord('q'):
+    #     print('Quitting....')
+    #     break
 cv2.destroyAllWindows()

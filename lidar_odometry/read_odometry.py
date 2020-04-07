@@ -6,13 +6,14 @@ import sensor_msgs.point_cloud2 as pc2
 import datetime
 import cv2
 
-bag = rosbag.Bag('/media/ash/OS/IIIT_Labels/loam_odom/odom_file1.bag')
-output_data_dir='/media/ash/OS/IIIT_Labels/train/file_1/'
+bag = rosbag.Bag('/media/ash/OS/IIIT_Labels/lego_loam/seq_4.bag')
+output_data_dir='/media/ash/OS/IIIT_Labels/test/seq_4/'
 
 os.makedirs(os.path.join(output_data_dir,"odometry"))
 
+
 def read_odometry():
-    index = 21
+    index = 1
     odom=[]
     #x,y,z = [],[],[]
     #t_x,t_y,t_z=[],[],[]
@@ -32,6 +33,7 @@ def read_odometry():
         odom = [t_vec,r_vec]
         np.save(os.path.join(output_data_dir,"odometry/" + '{0:010d}.npy'.format(index)),odom)
         index += 1
+
 
 if __name__ == "__main__":
     read_odometry()

@@ -241,6 +241,48 @@ def spline_fit(x,y,z):
     ax.plot(x,y,z)
     plt.show()
 
+def get_breakpoints(pts):
+    diff_log = []
+    length = pts.shape[0]
+    pred = np.zeros(length)
+    new_pred = np.zeros(length)
+    # road_height = np.mean(pts[:,2])
+
+    for i in range(2,length):
+        d_i_1 = np.linalg.norm(pts[i-1,:3])
+        d_i_2 = np.linalg.norm(pts[i-2,:3])
+        d_i = np.linalg.norm(pts[i,:3])
+        gamma_1 = np.dot(pts[i-1,:3],pts[i-2,:3])/(d_i_1*d_i_2)
+        gamma_2 = np.dot(pts[i - 1, :3], pts[i, :3]) / (d_i_1 * d_i)
+        gamma = (gamma_1 + gamma_2)/2
+        d_p = (d_i_1*d_i_2)/(2*d_i_1*gamma-d_i_2)
+        diff = d_i-d_p
+
+        if 0.5 < diff < 1:
+            pred[i] = 1
+        elif -1 < diff < -0.5:
+            pred[i] = -1
+        diff_log.append(diff)
+
+    min_segment = 1
+    segments = []
+    for i in range(length):
+        if pred[i] == -1:
+            obs_start = i
+            obs_end = 0
+            end_range = i+11 if i+11 < length else length
+            for j in range(i+1,end_range):
+                if pred[j] == 1 and j-i > min_segment:
+                    obs_end = j
+                    break
+            if obs_start != 0 and obs_end != 0:
+                segments.append((obs_start,obs_end))
+
+    for start,end in segments:
+        # if np.mean(pts[start:end,:2]) - road_height < 0.5:
+        new_pred[start:end] = -1
+    return new_pred
 
 if __name__ == '__main__':
     main()
+
